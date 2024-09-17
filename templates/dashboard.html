@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualization Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .filter-button {
+            padding: 5px 10px;
+            margin: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .filter-dropdown {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .filter-dropdown select {
+            padding: 5px;
+            font-size: 14px;
+        }
+
+        .charts-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .chart {
+            width: 48%;
+        }
+    </style>
+</head>
+<body>
+    <h2>Filters</h2>
+
+    <!-- Buttons to toggle the dropdowns -->
+    <button class="filter-button" onclick="toggleDropdown('region')">Region</button>
+    <button class="filter-button" onclick="toggleDropdown('country')">Country</button>
+    <button class="filter-button" onclick="toggleDropdown('topic')">Topic</button>
+    <button class="filter-button" onclick="toggleDropdown('year')">Year</button>
+    <button class="filter-button" onclick="toggleDropdown('intensity')">Intensity</button>
+    <button class="filter-button" onclick="toggleDropdown('likelihood')">Likelihood</button>
+    <button class="filter-button" onclick="toggleDropdown('relevance')">Relevance</button>
+    <button class="filter-button" onclick="toggleDropdown('city')">City</button>
+
+    <!-- Dropdowns for each filter -->
+    <div id="region-dropdown" class="filter-dropdown">
+        <label for="region-select">Select Region:</label>
+        <select id="region-select" onchange="applyFilter('region')"></select>
+    </div>
+
+    <div id="country-dropdown" class="filter-dropdown">
+        <label for="country-select">Select Country:</label>
+        <select id="country-select" onchange="applyFilter('country')"></select>
+    </div>
+
+    <div id="topic-dropdown" class="filter-dropdown">
+        <label for="topic-select">Select Topic:</label>
+        <select id="topic-select" onchange="applyFilter('topic')"></select>
+    </div>
+
+    <div id="year-dropdown" class="filter-dropdown">
+        <label for="year-select">Select Year:</label>
+        <select id="year-select" onchange="applyFilter('year')"></select>
+    </div>
+
+    <div id="intensity-dropdown" class="filter-dropdown">
+        <label for="intensity-select">Select Intensity:</label>
+        <select id="intensity-select" onchange="applyFilter('intensity')"></select>
+    </div>
+
+    <div id="likelihood-dropdown" class="filter-dropdown">
+        <label for="likelihood-select">Select Likelihood:</label>
+        <select id="likelihood-select" onchange="applyFilter('likelihood')"></select>
+    </div>
+
+    <div id="relevance-dropdown" class="filter-dropdown">
+        <label for="relevance-select">Select Relevance:</label>
+        <select id="relevance-select" onchange="applyFilter('relevance')"></select>
+    </div>
+
+    <div id="city-dropdown" class="filter-dropdown">
+        <label for="city-select">Select City:</label>
+        <select id="city-select" onchange="applyFilter('city')"></select>
+    </div>
+
+    <!-- Visualization containers -->
+    <div class="charts-container">
+        <div class="chart" id="bar-chart" style="width: 100%; height: 500px;"></div>
+        <div class="chart" id="pie-chart" style="width: 100%; height: 500px;"></div>
+    </div>
+
+    <script>
+        // Toggle dropdown visibility
+        function toggleDropdown(filterType) {
+            const dropdown = document.getElementById(`${filterType}-dropdown`);
+            const isVisible = dropdown.style.display === 'block';
+            document.querySelectorAll('.filter-dropdown').forEach(div => div.style.display = 'none');
+            dropdown.style.display = isVisible ? 'none' : 'block';
+        }
+
+        // Fetch data and populate dropdowns for filtering
+        function populateDropdowns() {
+            fetch('/api/data')
+                .then(response => response.json())
+                .then(data => {
+                    populateDropdown('region-select', [...new Set(data.map(item => item['region']))].filter(Boolean));
+                    populateDropdown('country-select', [...new Set(data.map(item => item['country']))].filter(Boolean));
+                    populateDropdown('topic-select', [...new Set(data.map(item => item['topic']))].filter(Boolean));
+                    populateDropdown('year-select', [...new Set(data.map(item => item['end_year']))].filter(Boolean));
+                    populateDropdown('intensity-select', [...new Set(data.map(item => item['intensity']))]);
+                    populateDropdown('likelihood-select', [...new Set(data.map(item => item['likelihood']))]);
+                    populateDropdown('relevance-select', [...new Set(data.map(item => item['relevance']))]);
+                    populateDropdown('city-select', [...new Set(data.map(item => item['city']))].filter(Boolean));
+                });
+        }
+
+        // Populate a dropdown with unique values
+        function populateDropdown(selectId, values) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Select</option>'; // Add default option
+            values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.text = value;
+                select.appendChild(option);
+            });
+        }
+
+        // Fetch filtered data and update the charts
+        // function applyFilter(filterType) {
+        //     const selectedValue = document.getElementById(`${filterType}-select`).value;
+        //     const queryString = `/api/data?${filterType}=${selectedValue}`;
+
+        //     fetch(queryString)
+        //         .then(response => response.json())
+        //         .then(data => {
+        //             let years = [];
+        //             let intensities = [];
+        //             let likelihoods = [];
+
+        //             data.forEach(item => {
+        //                 years.push(item['end_year']);
+        //                 intensities.push(item['intensity']);
+        //                 likelihoods.push(item['likelihood']);
+        //             });
+
+        //             // Update the bar chart
+        //             var trace1 = {
+        //                 x: years,
+        //                 y: intensities,
+        //                 type: 'bar',
+        //                 name: 'Intensity'
+        //             };
+
+        //             var trace2 = {
+        //                 x: years,
+        //                 y: likelihoods,
+        //                 type: 'bar',
+        //                 name: 'Likelihood'
+        //             };
+
+        //             var barLayout = {
+        //                 title: `Data Filtered by ${filterType}: ${selectedValue}`,
+        //                 xaxis: { title: 'End Year' },
+        //                 yaxis: { title: 'Values' }
+        //             };
+
+        //             Plotly.newPlot('bar-chart', [trace1, trace2], barLayout);
+
+        //             // Update the pie chart (showing proportion of intensity)
+        //             var pieData = [{
+        //                 values: intensities,
+        //                 labels: years,
+        //                 type: 'pie',
+        //                 hoverinfo: 'label+percent',
+        //                 textinfo: 'none',
+        //                 marker: {
+        //                     colors: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
+        //                 }
+        //             }];
+
+        //             var pieLayout = {
+        //                 title: 'Intensity Distribution',
+        //             };
+
+        //             Plotly.newPlot('pie-chart', pieData, pieLayout);
+        //         });
+        // }
+
+
+
+
+
+//         function applyFilter(filterType) {
+//     const selectedValue = document.getElementById(`${filterType}-select`).value;
+//     const queryString = `/api/data?${filterType}=${selectedValue}`;
+
+//     fetch(queryString)
+//         .then(response => response.json())
+//         .then(data => {
+//             let years = [];
+//             let intensities = [];
+//             let likelihoods = [];
+//             let countries = []; // Add this line to store country names
+
+//             data.forEach(item => {
+//                 years.push(item['end_year']);
+//                 intensities.push(item['intensity']);
+//                 likelihoods.push(item['likelihood']);
+//                 countries.push(item['country']); // Add this line to collect country names
+//             });
+
+//             // Update the bar chart
+//             var trace1 = {
+//                 x: years,
+//                 y: intensities,
+//                 type: 'bar',
+//                 name: 'Intensity'
+//             };
+
+//             var trace2 = {
+//                 x: years,
+//                 y: likelihoods,
+//                 type: 'bar',
+//                 name: 'Likelihood'
+//             };
+
+//             var barLayout = {
+//                 title: `Data Filtered by ${filterType}: ${selectedValue}`,
+//                 xaxis: { title: 'End Year' },
+//                 yaxis: { title: 'Values' }
+//             };
+
+//             Plotly.newPlot('bar-chart', [trace1, trace2], barLayout);
+
+//             // Update the pie chart (showing proportion of intensity)
+//             var pieData = [{
+//                 values: intensities,
+//                 labels: countries, // Use countries for labels
+//                 type: 'pie',
+//                 hoverinfo: 'label+percent', // Show label and percent on hover
+//                 textinfo: 'label+text', // Show label and text on the pie chart
+//                 text: countries, // Show country names as text
+//                 marker: {
+//                     colors: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
+//                 }
+//             }];
+
+//             var pieLayout = {
+//                 title: 'Intensity Distribution',
+//             };
+
+//             Plotly.newPlot('pie-chart', pieData, pieLayout);
+//         });
+// }
+
+
+
+
+
+function applyFilter(filterType) {
+    const selectedValue = document.getElementById(`${filterType}-select`).value;
+    const queryString = `/api/data?${filterType}=${selectedValue}`;
+
+    fetch(queryString)
+        .then(response => response.json())
+        .then(data => {
+            let years = [];
+            let intensities = [];
+            let likelihoods = [];
+            let countries = []; // Add this line to store country names
+
+            data.forEach(item => {
+                years.push(item['end_year']);
+                intensities.push(item['intensity']);
+                likelihoods.push(item['likelihood']);
+                countries.push(item['country']); // Add this line to collect country names
+            });
+
+            // Update the bar chart
+            var trace1 = {
+                x: years,
+                y: intensities,
+                type: 'bar',
+                name: 'Intensity'
+            };
+
+            var trace2 = {
+                x: years,
+                y: likelihoods,
+                type: 'bar',
+                name: 'Likelihood'
+            };
+
+            var barLayout = {
+                title: `Data Filtered by ${filterType}: ${selectedValue}`,
+                xaxis: { title: 'End Year' },
+                yaxis: { title: 'Values' }
+            };
+
+            Plotly.newPlot('bar-chart', [trace1, trace2], barLayout);
+
+            // Update the pie chart (showing proportion of intensity)
+            var pieData = [{
+                values: intensities,
+                labels: years, // Use years for labels
+                type: 'pie',
+                hoverinfo: 'label+percent+text', // Show label, percent, and custom text on hover
+                textinfo: 'none', // Do not display text directly on the chart
+                hovertemplate: '<b>%{label}</b><br>Country: %{text}<br>Intensity: %{value}<br>Percent: %{percent:.2%}<extra></extra>', // Customize hover info
+                text: countries, // Use countries for hover text
+                marker: {
+                    colors: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
+                }
+            }];
+
+            var pieLayout = {
+                title: 'Intensity Distribution',
+            };
+
+            Plotly.newPlot('pie-chart', pieData, pieLayout);
+        });
+}
+
+
+
+
+
+
+
+        // Populate dropdowns when the page loads
+        window.onload = populateDropdowns;
+    </script>
+</body>
+</html>
